@@ -76,7 +76,7 @@ func mainErr() error {
 		Status:   time.Minute,
 	}
 	tagflag.Parse(&flags)
-	ec := make(chan notify.EventInfo, 1)
+	ec := make(chan notify.EventInfo, 1024)
 	defer notify.Stop(ec)
 	deleteChan := make(chan struct{}, 1)
 	var z zone
@@ -137,12 +137,16 @@ func (z *zone) checkFull() {
 
 func handleEvents(ec chan notify.EventInfo, z *zone, logEvents bool) {
 	for ei := range ec {
-		if logEvents {
-			log.Printf("got event info: %v\n%#v", ei, ei.Sys())
-		}
-		s := stat(ei.Path())
-		applyStat(z, ei.Path(), s)
+		go handleEvent(ei, z, logEvents)
 	}
+}
+
+func handleEvent(ei notify.EventInfo, z *zone, logEvents bool) {
+	if logEvents {
+		log.Printf("got event info: %v\n%#v", ei, ei.Sys())
+	}
+	s := stat(ei.Path())
+	applyStat(z, ei.Path(), s)
 }
 
 func walk(name string, f func(string, Stat)) {
