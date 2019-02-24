@@ -212,6 +212,7 @@ func evictInZone(z *zone, notify []*zone, remover func(name string) bool) {
 		log.Printf("zone full but no removal candidates")
 		return
 	}
+	log.Printf("removing %q (%v, %v)", name, z.c.Items[name].Size, z.c.Items[name].Usage)
 	if remover(name) {
 		for _, z := range notify {
 			z.c.Remove(name)
