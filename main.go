@@ -162,7 +162,7 @@ func applyStat(z *zone, name string, s Stat) {
 		i.Key = name
 		i.Size = s.size
 		i.Usage = timeUsage(s.lastUsed)
-		i.CanEvict = !s.isDir && !s.isSymlink
+		i.CanEvict = !s.isDir && !s.isSymlink && s.size != 0
 		z.c.Update(i)
 	} else {
 		z.c.Remove(name)
