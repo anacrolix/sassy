@@ -11,12 +11,10 @@ import (
 	"time"
 
 	_ "github.com/anacrolix/envpprof"
-
-	"github.com/anacrolix/tagflag"
-
-	"github.com/anacrolix/missinggo/cache"
-
 	"github.com/anacrolix/missinggo"
+	"github.com/anacrolix/missinggo/cache"
+	"github.com/anacrolix/tagflag"
+	humanize "github.com/dustin/go-humanize"
 	"github.com/rjeczalik/notify"
 	"golang.org/x/xerrors"
 )
@@ -111,7 +109,6 @@ func mainErr() error {
 	wg.Wait()
 	log.Print(&z.c)
 	go deleter(deleteChan, []*zone{&z}, func(name string) bool {
-		log.Printf("deleting %q", name)
 		if flags.DryRun {
 			return true
 		}
@@ -146,6 +143,7 @@ func handleEvent(ei notify.EventInfo, z *zone, logEvents bool) {
 		log.Printf("got event info: %v\n%#v", ei, ei.Sys())
 	}
 	s := stat(ei.Path())
+	s.lastUsed = time.Now()
 	applyStat(z, ei.Path(), s)
 }
 
@@ -211,12 +209,14 @@ func deleter(check <-chan struct{}, zs []*zone, remover func(name string) bool) 
 }
 
 func evictInZone(z *zone, notify []*zone, remover func(name string) bool) {
-	name, ok := z.c.Policy.Candidate()
+	i, ok := z.c.Candidate()
 	if !ok {
 		log.Printf("zone full but no removal candidates")
 		return
 	}
-	log.Printf("removing %q (%v, %v)", name, z.c.Items[name].Size, z.c.Items[name].Usage)
+	name := i.Key
+	log.Printf("removing %q (%v, %v)",
+		name, humanize.Bytes(uint64(i.Size)), i.Usage)
 	if remover(name) {
 		for _, z := range notify {
 			z.c.Remove(name)
